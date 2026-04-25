@@ -19,6 +19,16 @@ from trading_signal_pipeline.domain.value_objects import Price, Volume
 
 
 class YFinanceMarketDataProvider(MarketDataProvider):
+    """Market data provider backed by Yahoo Finance via `yfinance`.
+
+    Notes:
+        Yahoo/yfinance can be rate limited or blocked in some environments (429/403),
+        and may fail timezone metadata lookups (`YFTzMissingError`). This adapter
+        uses a requests Session + fallback to `Ticker().history()` to improve
+        reliability, but callers should prefer the `binance` or `csv` providers
+        when deterministic runs are required.
+    """
+
     def __init__(self, default_timezone: str | None = None):
         """
         Args:

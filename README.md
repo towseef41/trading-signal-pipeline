@@ -367,9 +367,18 @@ This project is intentionally designed around ports (interfaces) and pluggable c
 
 ---
 
-## Notes
+## Production Considerations (Intentional Gaps)
 
-This project is designed as a clean, extensible prototype — balancing simplicity with production-oriented design principles.
+This is an assessment-focused prototype. The codebase is structured so the following can be added
+as adapters/config without rewriting core domain logic:
+
+- Persistence: replace file-backed repos (`*.json`/`*.jsonl`) with DB-backed repositories (e.g., Postgres) and add migrations/retention.
+- Auth/security: rotateable API keys or OAuth/JWT, TLS termination, rate limiting, replay protection, audit logs.
+- Observability: JSON structured logs, request/correlation IDs, metrics (Prometheus), tracing (OpenTelemetry).
+- Execution realism: fill on next-bar open, slippage/fees, partial fills, position sizing, risk limits.
+- Reliability: background job queue for execution/outbox publishing, retries/backoff, dead-letter handling.
+
+These are called out explicitly to show a production mindset while keeping the assessment implementation lightweight.
 
 ---
 

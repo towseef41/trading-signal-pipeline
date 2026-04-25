@@ -14,6 +14,14 @@ from trading_signal_pipeline.serialization.primitives import backtest_result_to_
 
 
 class JsonArtifactWriter(ArtifactWriter):
+    """Write a BacktestArtifact to a single JSON file.
+
+    The JSON payload contains:
+      - meta: run metadata
+      - metrics: computed metrics
+      - result: serialized BacktestResult (equity_curve, trades, fills)
+    """
+
     def __init__(self, output_dir: str = "artifacts"):
         """
         Args:
