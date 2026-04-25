@@ -36,12 +36,14 @@ This project implements a simplified version of a real-world trading pipeline:
 
 ## Architecture
 
-The project follows a clean separation of concerns:
+The project follows DDD + Clean Architecture layering:
 
 ```
-core/        → Strategy, Backtest Engine, Metrics
-infra/       → Data loading, storage, logging
-interface/   → API endpoints and reporting
+trading_signal_pipeline/domain/       → domain model (entities/value objects/policies)
+trading_signal_pipeline/application/  → use-cases + app-level services (metrics/reporting)
+trading_signal_pipeline/ports/        → interfaces (repositories, broker, writers, publishers)
+trading_signal_pipeline/adapters/     → infra implementations (yfinance, file repos, writers, outbox)
+trading_signal_pipeline/interfaces/   → interface layer (FastAPI)
 ```
 
 Design principles:
@@ -50,18 +52,39 @@ Design principles:
 * Strategy pattern for extensibility
 * Clear separation between pure logic and side effects
 
+### Detailed Architecture
+
+See `docs/ARCHITECTURE.md` for:
+
+- Package layout and dependency rules (ports/adapters)
+- Backtest, ingestion, and reporting flows
+- Extension points (strategies, writers, brokers, metrics, reports)
+
 ---
 
 ## Getting Started
 
+### Prerequisites
+
+- Python 3.12+ recommended
+- (Optional) `virtualenv` / `venv`
+
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/your-username/trading-signal-pipeline.git
+git clone https://github.com/towseef41/trading-signal-pipeline.git
 cd trading-signal-pipeline
 ```
 
-### 2. Install dependencies
+### 2. Create a virtualenv (recommended)
+
+```bash
+python3 -m venv venv
+source venv/bin/activate
+python -m pip install --upgrade pip
+```
+
+### 3. Install dependencies
 
 ```bash
 pip install -r requirements.txt
@@ -71,9 +94,48 @@ pip install -r requirements.txt
 
 ## Run Backtest
 
+Backtests load OHLCV candles via a pluggable market data provider, run the EMA(9/21)
+crossover strategy, compute metrics, and write artifacts via pluggable writers.
+
+Provider note:
+
+- `yfinance` (Yahoo) is convenient for equities, but it is unreliable in many environments:
+  - can hit upstream rate limits/blocks (HTTP 429/403) or return empty responses
+  - may fail timezone metadata lookups (`YFTzMissingError: No timezone found`)
+- Because of that, this project also supports `binance` (public klines endpoint, no API key) and `csv`
+  so evaluators can run the backtest deterministically even when Yahoo is flaky.
+
 ```bash
-python main.py backtest
+python main.py backtest --symbol AAPL --start 2022-01-01 --end 2023-01-01 --interval 1d --output json csv
 ```
+
+### Binance backtest (crypto)
+
+You can also run the backtest against Binance spot markets (public endpoint, no API key):
+
+```bash
+python main.py backtest --provider binance --symbol BTCUSDT --start 2024-01-01 --end 2024-02-01 --interval 1d --output json
+```
+
+### Offline backtest (no network)
+
+If you are running in an environment without network access (or yfinance is rate limited),
+run the backtest against a local CSV:
+
+```bash
+python main.py backtest --provider csv --symbol AAPL --data-file sample_data/AAPL.csv --output json csv
+```
+
+### yfinance timezone fallback (optional)
+
+In some environments Yahoo blocks timezone metadata calls, which can trigger a `YFTzMissingError`.
+You can provide a fallback timezone:
+
+```bash
+python main.py backtest --symbol AAPL --start 2024-01-01 --end 2024-04-01 --interval 1d --yahoo-tz America/New_York --output json
+```
+
+Note: this may avoid timezone errors, but it does not bypass upstream rate limiting (HTTP 429).
 
 This will:
 
@@ -82,17 +144,75 @@ This will:
 * Simulate trades
 * Output performance metrics
 
+### Backtest assumptions (explicit)
+
+- Signals are generated using each candle's `close`.
+- Backtest execution fills entries/exits at that same candle `close` (a common simplification).
+- If we want stricter realism, the execution policy can be swapped to fill on next-bar `open` and/or apply slippage/fees.
+
+### Backtest outputs
+
+The default outputs are written under `./artifacts/` (this directory is created on demand).
+
+- JSON artifact: `artifacts/backtest_<SYMBOL>_<TIMESTAMP>.json`
+  - What it contains:
+    - `meta`: run metadata (symbol, timestamps, provider, interval, params)
+    - `metrics`: computed metrics (total_return, win_rate, max_drawdown, num_trades, etc.)
+    - `result.equity_curve`: equity over time (one value per candle)
+    - `result.trades`: completed round-trip trades (entry + exit + pnl)
+    - `result.fills`: per-leg executions (BUY/SELL legs)
+- CSV artifacts:
+  - `artifacts/backtest_<SYMBOL>_<TIMESTAMP>.metrics.csv`
+    - Two columns: `metric,value` (one row per metric)
+  - `artifacts/backtest_<SYMBOL>_<TIMESTAMP>.equity.csv`
+    - Two columns: `idx,equity` where `idx` is candle index in the series
+  - `artifacts/backtest_<SYMBOL>_<TIMESTAMP>.trades.csv`
+    - One row per completed trade (round-trip): `symbol,side,entry_price,exit_price,quantity,pnl,entry_time,exit_time`
+  - `artifacts/backtest_<SYMBOL>_<TIMESTAMP>.fills.csv` (BUY/SELL legs)
+    - One row per fill (entry/exit leg): `symbol,side,price,quantity,time`
+- Latest backtest snapshot used by reporting:
+  - `artifacts/latest_backtest.json`
+    - Same schema as `result` in the JSON artifact (no `meta`/`metrics`), used by the reporting engine.
+- Outbox events (JSON Lines):
+  - `artifacts/outbox.jsonl`
+    - Append-only JSONL event log written by the ingestion pipeline (one JSON object per line).
+
+Note: artifacts are typically ignored by git (see `.gitignore`).
+
 ---
 
 ## Run API Server
 
+Set an API key for the server (required for protected endpoints):
+
 ```bash
-uvicorn interface.api:app --reload
+export PIPELINE_API_KEY="change-me"
 ```
+
+```bash
+uvicorn trading_signal_pipeline.interfaces.api.v1.app:app --reload
+```
+
+API docs:
+
+- Swagger UI: `http://127.0.0.1:8000/docs`
+- Health: `GET http://127.0.0.1:8000/health`
+
+Auth:
+
+- Protected endpoints require `X-API-Key: <PIPELINE_API_KEY>`
+- Unprotected endpoint: `GET /health`
 
 ---
 
 ## Example Webhook Request
+
+Endpoint: `POST http://127.0.0.1:8000/v1/signals`
+
+Authentication:
+
+- Set `PIPELINE_API_KEY` on the server.
+- Send `X-API-Key: <your key>` with each request.
 
 ```json
 {
@@ -103,18 +223,66 @@ uvicorn interface.api:app --reload
 }
 ```
 
+Example `curl`:
+
+```bash
+curl -sS -X POST "http://127.0.0.1:8000/v1/signals" \
+  -H "X-API-Key: $PIPELINE_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"symbol":"AAPL","side":"BUY","qty":10,"price":150.25}'
+```
+
+Behavior:
+
+- Malformed payloads are rejected with `422` (FastAPI/Pydantic validation).
+- Duplicate signals are rejected with `400` and `{"detail":"Duplicate signal"}`.
+- Accepted signals are persisted to `artifacts/signals.jsonl` with a timestamp.
+
+### Test idempotency (duplicate signal handling)
+
+The ingestion endpoint supports an `Idempotency-Key` header. Send the same request twice with the
+same `Idempotency-Key`:
+
+```bash
+curl -sS -X POST "http://127.0.0.1:8000/v1/signals" \
+  -H "X-API-Key: $PIPELINE_API_KEY" \
+  -H "Idempotency-Key: demo-1" \
+  -H "Content-Type: application/json" \
+  -d '{"symbol":"BTCUSDT","side":"BUY","qty":1,"price":100.0}'
+
+# Same key again -> rejected as duplicate
+curl -sS -X POST "http://127.0.0.1:8000/v1/signals" \
+  -H "X-API-Key: $PIPELINE_API_KEY" \
+  -H "Idempotency-Key: demo-1" \
+  -H "Content-Type: application/json" \
+  -d '{"symbol":"BTCUSDT","side":"BUY","qty":1,"price":100.0}'
+```
+
 ---
 
 ## Reporting
+
+Reporting reads:
+
+- `artifacts/latest_backtest.json` (if present)
+- `artifacts/signals.jsonl` (if present)
+
+### CLI report
 
 ```bash
 python main.py report
 ```
 
-Outputs:
+Outputs a JSON summary (safe to run even before any backtest or webhook ingestion).
 
-* Backtest results
-* Signal logs summary
+### API report
+
+Endpoint: `GET http://127.0.0.1:8000/v1/report/`
+
+```bash
+curl -sS "http://127.0.0.1:8000/v1/report/" \
+  -H "X-API-Key: $PIPELINE_API_KEY" | python -m json.tool
+```
 
 ---
 
@@ -124,15 +292,78 @@ Outputs:
 pytest
 ```
 
+If you are using a virtualenv, prefer:
+
+```bash
+python -m pytest -q
+```
+
 ---
 
-## Future Improvements
+## Troubleshooting
 
-* Support multiple strategies
-* Add database persistence (PostgreSQL)
-* Real broker integration
-* Strategy configuration via YAML
-* Advanced metrics (Sharpe ratio, etc.)
+- If commands fail with missing packages (e.g. `fastapi`, `yfinance`), make sure your virtualenv is activated (`source venv/bin/activate`) and dependencies are installed.
+- If you run `report` without having run a backtest or ingested signals, the report returns zeros/empty summaries instead of erroring.
+
+---
+
+## Docker (Production-Like Run)
+
+### Build and run (Docker)
+
+```bash
+docker build -t trading-signal-pipeline .
+docker run --rm -p 8000:8000 \
+  -e PIPELINE_API_KEY="change-me" \
+  -v "$(pwd)/artifacts:/app/artifacts" \
+  trading-signal-pipeline
+```
+
+Then open:
+
+- `http://127.0.0.1:8000/docs`
+- `http://127.0.0.1:8000/health`
+
+### Run with docker-compose
+
+```bash
+docker compose up --build
+```
+
+### Run CLI commands inside the container
+
+Backtest:
+
+```bash
+docker run --rm -v "$(pwd)/artifacts:/app/artifacts" trading-signal-pipeline \
+  python main.py backtest --symbol AAPL --output json csv
+```
+
+Report:
+
+```bash
+docker run --rm -v "$(pwd)/artifacts:/app/artifacts" trading-signal-pipeline \
+  python main.py report
+```
+
+Notes:
+
+- `./artifacts` is mounted so backtest outputs, signals, and the outbox persist across runs.
+- If you do not mount `./artifacts`, container runs will still work but outputs will be ephemeral.
+
+---
+
+## Extensibility
+
+This project is intentionally designed around ports (interfaces) and pluggable components, so these are straightforward to add without rewriting core logic:
+
+* Multiple strategies: implement `trading_signal_pipeline/domain/strategy.py` and plug into `RunBacktestService`
+* Additional data providers (e.g., Binance): implement `trading_signal_pipeline/ports/market_data_provider.py`
+* Database persistence (e.g., PostgreSQL): implement `trading_signal_pipeline/ports/signal_repository.py` and `trading_signal_pipeline/ports/backtest_result_repository.py`
+* Real broker integration: implement `trading_signal_pipeline/ports/broker.py`
+* Additional outputs (S3, DB, etc.): implement `trading_signal_pipeline/ports/artifact_writer.py`
+* More metrics (Sharpe, Sortino, etc.): implement `trading_signal_pipeline/ports/metric.py` and register in the composition root
+* Additional report formats/sections: implement `trading_signal_pipeline/ports/report_section.py` and register in the composition root
 
 ---
 

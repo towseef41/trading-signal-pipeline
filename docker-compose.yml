@@ -1,0 +1,11 @@
+services:
+  api:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - PYTHONUNBUFFERED=1
+      - PIPELINE_API_KEY=change-me
+    volumes:
+      # Persist artifacts (signals/backtest/outbox) on the host
+      - ./artifacts:/app/artifacts

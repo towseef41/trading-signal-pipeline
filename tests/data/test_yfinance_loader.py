@@ -1,23 +1,28 @@
+from datetime import datetime, timezone
+
 import pandas as pd
 import pytest
 
-from data.yfinance_loader import YFinanceDataLoader
+from trading_signal_pipeline.adapters.market_data.yfinance_provider import YFinanceMarketDataProvider
+from trading_signal_pipeline.domain.market import Candle
 
-
-# ----------------------------
-# Mock yfinance
-# ----------------------------
 
 class MockYF:
     @staticmethod
     def download(*args, **kwargs):
-        return pd.DataFrame({
-            "Open": [100, 101],
-            "High": [102, 103],
-            "Low": [99, 100],
-            "Close": [101, 102],
-            "Volume": [1000, 1100],
-        })
+        idx = pd.to_datetime(
+            [datetime(2024, 1, 1, tzinfo=timezone.utc), datetime(2024, 1, 2, tzinfo=timezone.utc)]
+        )
+        return pd.DataFrame(
+            {
+                "Open": [100, 101],
+                "High": [102, 103],
+                "Low": [99, 100],
+                "Close": [101, 102],
+                "Volume": [1000, 1100],
+            },
+            index=idx,
+        )
 
 
 class EmptyYF:
@@ -26,41 +31,24 @@ class EmptyYF:
         return pd.DataFrame()
 
 
-# ----------------------------
-# Tests
-# ----------------------------
+def test_load_returns_series(monkeypatch):
+    import trading_signal_pipeline.adapters.market_data.yfinance_provider as provider_module
 
-def test_load_returns_dataframe(monkeypatch):
-    import data.yfinance_loader as loader_module
+    monkeypatch.setattr(provider_module, "yf", MockYF)
 
-    monkeypatch.setattr(loader_module, "yf", MockYF)
+    provider = YFinanceMarketDataProvider()
+    series = provider.load("AAPL", start="2024-01-01", end="2024-01-10", interval="1d")
 
-    loader = YFinanceDataLoader()
-    df = loader.load("AAPL")
-
-    assert isinstance(df, pd.DataFrame)
-    assert not df.empty
-
-
-def test_required_columns_exist(monkeypatch):
-    import data.yfinance_loader as loader_module
-
-    monkeypatch.setattr(loader_module, "yf", MockYF)
-
-    loader = YFinanceDataLoader()
-    df = loader.load("AAPL")
-
-    required_columns = {"Open", "High", "Low", "Close", "Volume"}
-
-    assert required_columns.issubset(df.columns)
+    assert isinstance(series, list)
+    assert series
+    assert isinstance(series[0], Candle)
 
 
 def test_empty_data_raises(monkeypatch):
-    import data.yfinance_loader as loader_module
+    import trading_signal_pipeline.adapters.market_data.yfinance_provider as provider_module
 
-    monkeypatch.setattr(loader_module, "yf", EmptyYF)
+    monkeypatch.setattr(provider_module, "yf", EmptyYF)
 
-    loader = YFinanceDataLoader()
-
+    provider = YFinanceMarketDataProvider()
     with pytest.raises(ValueError):
-        loader.load("AAPL")
+        provider.load("AAPL", start="2024-01-01", end="2024-01-10", interval="1d")

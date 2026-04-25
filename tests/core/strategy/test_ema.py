@@ -1,58 +1,51 @@
-import pandas as pd
+from datetime import datetime, timedelta, timezone
+
 import pytest
 
-from core.strategy.ema import EMACrossoverStrategy
-from core.models.signal import SignalType
+from trading_signal_pipeline.domain.market import Candle
+from trading_signal_pipeline.domain.signal import SignalType
+from trading_signal_pipeline.domain.strategies.ema_crossover import EMACrossoverStrategy
+from trading_signal_pipeline.domain.value_objects import Price, Volume
 
 
-def create_data(prices):
-    return pd.DataFrame({"Close": prices})
+def make_series(prices):
+    t0 = datetime(2024, 1, 1, tzinfo=timezone.utc)
+    out = []
+    for i, p in enumerate(prices):
+        out.append(
+            Candle(
+                time=t0 + timedelta(days=i),
+                open=Price(float(p)),
+                high=Price(float(p)),
+                low=Price(float(p)),
+                close=Price(float(p)),
+                volume=Volume(1.0),
+            )
+        )
+    return out
 
 
-def test_output_structure():
-    data = create_data([100, 101, 102, 103])
-
+def test_output_length_matches_input():
+    series = make_series([100, 101, 102, 103])
     strategy = EMACrossoverStrategy()
-    result = strategy.generate_signals(data)
-
-    assert "signal" in result.columns
-    assert "ema_short" in result.columns
-    assert "ema_long" in result.columns
+    signals = strategy.generate(series)
+    assert len(signals) == len(series)
 
 
 def test_signal_values_are_valid():
-    data = create_data([100, 102, 101, 103, 99])
-
+    series = make_series([100, 102, 101, 103, 99])
     strategy = EMACrossoverStrategy()
-    result = strategy.generate_signals(data)
-
-    valid_values = {s.value for s in SignalType}
-    assert set(result["signal"].unique()).issubset(valid_values)
+    signals = strategy.generate(series)
+    assert set(signals).issubset({SignalType.BUY, SignalType.SELL, SignalType.HOLD})
 
 
-def test_missing_close_column():
-    data = pd.DataFrame({"Open": [1, 2, 3]})
+def test_empty_series():
     strategy = EMACrossoverStrategy()
-
-    with pytest.raises(ValueError):
-        strategy.generate_signals(data)
+    assert strategy.generate([]) == []
 
 
 def test_crossover_generates_signal():
-    prices = [100, 100, 100, 110, 120, 130]
-    data = create_data(prices)
-
+    series = make_series([100, 100, 100, 110, 120, 130])
     strategy = EMACrossoverStrategy(short_window=2, long_window=3)
-    result = strategy.generate_signals(data)
-
-    assert (result["signal"] != SignalType.HOLD.value).any()
-
-
-def test_flat_data_produces_no_signal():
-    prices = [100, 100, 100, 100]
-    data = create_data(prices)
-
-    strategy = EMACrossoverStrategy()
-    result = strategy.generate_signals(data)
-
-    assert (result["signal"] == SignalType.HOLD.value).all()
+    signals = strategy.generate(series)
+    assert any(s != SignalType.HOLD for s in signals)

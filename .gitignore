@@ -16,7 +16,4 @@ venv/
 .idea/
 
 # Data / outputs
-data/raw
-data/outputs
-*.csv
-*.json
+artifacts/
