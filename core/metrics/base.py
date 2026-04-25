@@ -1,7 +1,9 @@
 # core/metrics/base.py
 
 from abc import ABC, abstractmethod
-from typing import List, Dict
+from typing import List
+
+from core.models.trade import Trade
 
 
 class Metric(ABC):
@@ -12,7 +14,7 @@ class Metric(ABC):
     @abstractmethod
     def compute(
         self,
-        trades: List[Dict],
+        trades: List[Trade],
         equity_curve: List[float],
         initial_capital: float,
     ) -> float:

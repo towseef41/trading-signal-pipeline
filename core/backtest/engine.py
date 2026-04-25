@@ -1,16 +1,12 @@
 import pandas as pd
-from typing import List, Dict
+from typing import List
 
 from core.models.signal import SignalType
+from core.models.trade import Trade
+from core.models.backtest import BacktestResult
 from core.backtest.execution import ExecutionModel
 from core.backtest.position import Position
 from core.backtest.portfolio import Portfolio
-
-
-class BacktestResult:
-    def __init__(self, trades: List[Dict], equity_curve: List[float]):
-        self.trades = trades
-        self.equity_curve = equity_curve
 
 
 class BacktestEngine:
@@ -33,7 +29,7 @@ class BacktestEngine:
         position = Position()
         portfolio = Portfolio(self.initial_capital)
 
-        trades: List[Dict] = []
+        trades: List[Trade] = []
         equity_curve: List[float] = []
 
         for time, row in df.iterrows():

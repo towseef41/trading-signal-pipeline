@@ -65,7 +65,7 @@ def test_pnl_calculation():
 
     if result.trades:
         trade = result.trades[0]
-        assert trade["pnl"] == trade["exit_price"] - trade["entry_price"]
+        assert trade.pnl == trade.exit_price - trade.entry_price
 
 
 def test_invalid_signal_raises():

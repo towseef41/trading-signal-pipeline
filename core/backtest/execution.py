@@ -1,9 +1,10 @@
 from abc import ABC, abstractmethod
-from typing import List, Dict
+from typing import List
 
 from core.models.signal import SignalType
 from core.backtest.position import Position
 from core.backtest.portfolio import Portfolio
+from core.models.trade import Trade
 
 
 class ExecutionModel(ABC):
@@ -19,7 +20,7 @@ class ExecutionModel(ABC):
         signal: int,
         position: Position,
         portfolio: Portfolio,
-        trades: List[Dict],
+        trades: List[Trade],
     ):
         pass
 
@@ -43,13 +44,14 @@ class SimpleLongOnlyExecution(ExecutionModel):
             pnl = price - position.entry_price
             portfolio.update(pnl)
 
-            trades.append({
-                "entry_time": position.entry_time,
-                "exit_time": time,
-                "entry_price": position.entry_price,
-                "exit_price": price,
-                "pnl": pnl
-            })
+            trades.append(Trade(
+                symbol="AAPL",  # Replace with actual symbol
+                side="SELL",
+                entry_price=position.entry_price,
+                exit_price=price,
+                quantity=1.0,  # Replace with actual quantity
+                pnl=pnl
+            ))
 
             position.is_open = False
             position.entry_price = None

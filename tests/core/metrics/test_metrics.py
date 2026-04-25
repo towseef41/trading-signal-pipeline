@@ -5,14 +5,15 @@ from core.metrics.metrics import (
     NumTrades,
 )
 from core.metrics.registry import MetricsEngine
+from core.models.trade import Trade
 
 
 # --- Sample Data ---
 def sample_trades():
     return [
-        {"pnl": 10},
-        {"pnl": -5},
-        {"pnl": 20},
+        Trade(symbol="AAPL", side="BUY", entry_price=100, exit_price=110, quantity=1.0, pnl=10),
+        Trade(symbol="AAPL", side="BUY", entry_price=100, exit_price=95, quantity=1.0, pnl=-5),
+        Trade(symbol="AAPL", side="BUY", entry_price=100, exit_price=120, quantity=1.0, pnl=20),
     ]
 
 
