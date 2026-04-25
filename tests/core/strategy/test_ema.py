@@ -26,7 +26,7 @@ def test_signal_values_are_valid():
     strategy = EMACrossoverStrategy()
     result = strategy.generate_signals(data)
 
-    valid_values = set(SignalType)
+    valid_values = {s.value for s in SignalType}
     assert set(result["signal"].unique()).issubset(valid_values)
 
 
@@ -45,7 +45,7 @@ def test_crossover_generates_signal():
     strategy = EMACrossoverStrategy(short_window=2, long_window=3)
     result = strategy.generate_signals(data)
 
-    assert (result["signal"] != SignalType.HOLD).any()
+    assert (result["signal"] != SignalType.HOLD.value).any()
 
 
 def test_flat_data_produces_no_signal():
@@ -55,14 +55,4 @@ def test_flat_data_produces_no_signal():
     strategy = EMACrossoverStrategy()
     result = strategy.generate_signals(data)
 
-    assert (result["signal"] == SignalType.HOLD).all()
-
-
-def test_signal_column_type():
-    data = create_data([100, 101, 102, 103])
-
-    strategy = EMACrossoverStrategy()
-    result = strategy.generate_signals(data)
-
-    valid_values = {s.value for s in SignalType}
-    assert set(result["signal"].unique()).issubset(valid_values)
+    assert (result["signal"] == SignalType.HOLD.value).all()
