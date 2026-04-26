@@ -19,7 +19,7 @@ This project implements a simplified version of a real-world trading pipeline:
 ## Features
 
 * EMA Crossover Strategy (9/21)
-* Backtesting on historical OHLCV data (Yahoo Finance)
+* Backtesting on historical OHLCV data (pluggable providers: yfinance/Binance/CSV)
 * Performance metrics:
 
   * Total Return
@@ -30,7 +30,7 @@ This project implements a simplified version of a real-world trading pipeline:
 * Input validation with Pydantic
 * Duplicate signal handling (idempotency)
 * Structured logging of signals
-* Lightweight reporting (JSON/HTML)
+* Lightweight reporting (JSON)
 
 ---
 
@@ -104,14 +104,7 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for:
 
 - Python 3.12+ recommended
 - (Optional) `virtualenv` / `venv`
-
-### Quick Demo (Evaluator-Friendly)
-
-This script runs a backtest, starts the API, demonstrates idempotency, and prints the report:
-
-```bash
-PIPELINE_API_KEY=devkey ./scripts/demo.sh
-```
+- `curl` (used by `./scripts/demo.sh`)
 
 ### 1. Clone the repository
 
@@ -132,6 +125,15 @@ python -m pip install --upgrade pip
 
 ```bash
 pip install -r requirements.txt
+```
+
+### Quick Demo (Evaluator-Friendly)
+
+This script runs a backtest, starts the API, demonstrates idempotency, and prints the report:
+
+```bash
+chmod +x scripts/demo.sh
+PIPELINE_API_KEY=devkey ./scripts/demo.sh
 ```
 
 ---
@@ -239,7 +241,7 @@ export PIPELINE_API_KEY="change-me"
 ```
 
 ```bash
-uvicorn trading_signal_pipeline.interfaces.api.v1.app:app --reload
+./venv/bin/uvicorn trading_signal_pipeline.interfaces.api.v1.app:app --reload
 ```
 
 API docs:
@@ -399,7 +401,7 @@ pytest
 If you are using a virtualenv, prefer:
 
 ```bash
-python -m pytest -q
+./venv/bin/python -m pytest -q
 ```
 
 ## CI

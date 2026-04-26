@@ -17,6 +17,7 @@ from typing import Tuple, Optional
 
 from trading_signal_pipeline.domain.execution import ExecutionResult
 from trading_signal_pipeline.domain.events import DomainEvent
+from trading_signal_pipeline.domain.event_names import EventName
 from trading_signal_pipeline.domain.signal import SignalEvent
 from trading_signal_pipeline.ports.signal_repository import SignalRepository
 from trading_signal_pipeline.ports.broker import Broker
@@ -95,14 +96,14 @@ class IngestSignalService:
         corr = correlation_id or event.idempotency_key
         self.publisher.publish(
             DomainEvent.now(
-                name="signal.ingested",
+                name=EventName.SIGNAL_INGESTED.value,
                 payload={"signal": signal_event_to_dict(event)},
                 correlation_id=corr,
             )
         )
         self.publisher.publish(
             DomainEvent.now(
-                name="signal.executed",
+                name=EventName.SIGNAL_EXECUTED.value,
                 payload={"signal": signal_event_to_dict(event), "execution": execution_result_to_dict(execution)},
                 correlation_id=corr,
             )

@@ -12,6 +12,8 @@ from trading_signal_pipeline.interfaces.api.v1.schemas import (
     SignalEventOut,
     TradeSignal,
 )
+from trading_signal_pipeline.interfaces.api.v1.constants import HEADER_IDEMPOTENCY_KEY
+from trading_signal_pipeline.interfaces.api.v1.error_codes import ERR_DUPLICATE_SIGNAL
 from trading_signal_pipeline.interfaces.api.v1.dependencies import get_ingest_signal_service
 from trading_signal_pipeline.interfaces.api.v1.auth import require_api_key
 from trading_signal_pipeline.application.ingest_signal import DuplicateSignalError, IngestSignalService
@@ -51,7 +53,7 @@ def _handle_signal(
             correlation_id=get_request_id(),
         )
     except DuplicateSignalError as e:
-        raise HTTPException(status_code=400, detail={"code": "duplicate_signal", "message": str(e)}) from e
+        raise HTTPException(status_code=400, detail={"code": ERR_DUPLICATE_SIGNAL, "message": str(e)}) from e
 
     logger.info(
         "signal_received",
@@ -91,7 +93,7 @@ def _handle_signal(
 )
 def create_signal(
     signal: TradeSignal,
-    idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"),
+    idempotency_key: str | None = Header(default=None, alias=HEADER_IDEMPOTENCY_KEY),
     _auth: None = Depends(require_api_key),
     service: IngestSignalService = Depends(get_ingest_signal_service),
 ):

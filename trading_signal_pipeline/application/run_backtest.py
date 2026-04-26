@@ -19,6 +19,7 @@ from typing import Any, Dict, List, Optional
 from trading_signal_pipeline.domain.artifact import BacktestArtifact
 from trading_signal_pipeline.domain.backtesting.backtester import Backtester
 from trading_signal_pipeline.domain.events import DomainEvent
+from trading_signal_pipeline.domain.event_names import EventName
 from trading_signal_pipeline.domain.strategy import Strategy
 from trading_signal_pipeline.ports.artifact_writer import ArtifactWriter
 from trading_signal_pipeline.ports.backtest_result_repository import BacktestResultRepository
@@ -109,7 +110,7 @@ class RunBacktestService:
 
         self.publisher.publish(
             DomainEvent.now(
-                name="backtest.completed",
+                name=EventName.BACKTEST_COMPLETED.value,
                 payload={
                     "meta": artifact.meta,
                     "metrics": artifact.metrics,
