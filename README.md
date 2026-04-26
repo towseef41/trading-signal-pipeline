@@ -105,6 +105,14 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for:
 - Python 3.12+ recommended
 - (Optional) `virtualenv` / `venv`
 
+### Quick Demo (Evaluator-Friendly)
+
+This script runs a backtest, starts the API, demonstrates idempotency, and prints the report:
+
+```bash
+PIPELINE_API_KEY=devkey ./scripts/demo.sh
+```
+
 ### 1. Clone the repository
 
 ```bash
