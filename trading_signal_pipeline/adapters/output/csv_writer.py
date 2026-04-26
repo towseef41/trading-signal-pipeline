@@ -10,6 +10,7 @@ from pathlib import Path
 from trading_signal_pipeline.domain.artifact import BacktestArtifact
 from trading_signal_pipeline.ports.artifact_writer import ArtifactWriter
 from trading_signal_pipeline.serialization.primitives import fill_to_dict, trade_to_dict
+from trading_signal_pipeline.config.paths import DEFAULT_ARTIFACTS_DIR
 
 
 class CsvArtifactWriter(ArtifactWriter):
@@ -17,7 +18,7 @@ class CsvArtifactWriter(ArtifactWriter):
     CSV writer splits output into tabular files.
     """
 
-    def __init__(self, output_dir: str = "artifacts"):
+    def __init__(self, output_dir: str = DEFAULT_ARTIFACTS_DIR):
         """
         Args:
             output_dir: Directory where CSV artifacts will be written.

@@ -8,8 +8,9 @@ from trading_signal_pipeline.interfaces.api.v1.dependencies import get_generate_
 from trading_signal_pipeline.interfaces.api.v1.auth import require_api_key
 from trading_signal_pipeline.application.generate_report import GenerateReportService
 from trading_signal_pipeline.interfaces.api.v1.schemas import ApiResponse, ErrorResponse, ReportOut
+from trading_signal_pipeline.interfaces.api.v1.constants import PREFIX_REPORT
 
-router = APIRouter(prefix="/v1/report")
+router = APIRouter(prefix=PREFIX_REPORT)
 
 
 @router.get(

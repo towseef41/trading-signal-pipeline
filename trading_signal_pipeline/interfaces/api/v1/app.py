@@ -16,13 +16,13 @@ from trading_signal_pipeline.interfaces.api.v1.ingestion import router as webhoo
 from trading_signal_pipeline.interfaces.api.v1.reporting import router as reporting_router
 from trading_signal_pipeline.interfaces.api.v1.schemas import ErrorResponse
 from trading_signal_pipeline.adapters.logging.request_context import clear_request_id, set_request_id
-from trading_signal_pipeline.interfaces.api.v1.constants import HEADER_REQUEST_ID
+from trading_signal_pipeline.interfaces.api.v1.constants import HEADER_REQUEST_ID, PATH_HEALTH
 from trading_signal_pipeline.interfaces.api.v1.error_codes import ERR_HTTP, ERR_VALIDATION
 
 app = FastAPI(title="Signal Ingestion API")
 
 
-@app.get("/health")
+@app.get(PATH_HEALTH)
 def health():
     """Health check endpoint."""
     return {"status": "ok"}

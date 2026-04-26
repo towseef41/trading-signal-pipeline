@@ -12,7 +12,7 @@ from trading_signal_pipeline.interfaces.api.v1.schemas import (
     SignalEventOut,
     TradeSignal,
 )
-from trading_signal_pipeline.interfaces.api.v1.constants import HEADER_IDEMPOTENCY_KEY
+from trading_signal_pipeline.interfaces.api.v1.constants import HEADER_IDEMPOTENCY_KEY, PREFIX_V1
 from trading_signal_pipeline.interfaces.api.v1.error_codes import ERR_DUPLICATE_SIGNAL
 from trading_signal_pipeline.interfaces.api.v1.dependencies import get_ingest_signal_service
 from trading_signal_pipeline.interfaces.api.v1.auth import require_api_key
@@ -21,7 +21,7 @@ from trading_signal_pipeline.adapters.logging.logger import logger
 from trading_signal_pipeline.adapters.logging.request_context import get_request_id
 from trading_signal_pipeline.serialization.primitives import execution_result_to_dict
 
-router = APIRouter(prefix="/v1", tags=["signals"])
+router = APIRouter(prefix=PREFIX_V1, tags=["signals"])
 
 
 def _handle_signal(

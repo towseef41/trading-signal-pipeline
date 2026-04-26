@@ -11,6 +11,7 @@ from typing import Any, Dict
 from trading_signal_pipeline.domain.artifact import BacktestArtifact
 from trading_signal_pipeline.ports.artifact_writer import ArtifactWriter
 from trading_signal_pipeline.serialization.primitives import backtest_result_to_dict
+from trading_signal_pipeline.config.paths import DEFAULT_ARTIFACTS_DIR
 
 
 class JsonArtifactWriter(ArtifactWriter):
@@ -22,7 +23,7 @@ class JsonArtifactWriter(ArtifactWriter):
       - result: serialized BacktestResult (equity_curve, trades, fills)
     """
 
-    def __init__(self, output_dir: str = "artifacts"):
+    def __init__(self, output_dir: str = DEFAULT_ARTIFACTS_DIR):
         """
         Args:
             output_dir: Directory where JSON artifacts will be written.

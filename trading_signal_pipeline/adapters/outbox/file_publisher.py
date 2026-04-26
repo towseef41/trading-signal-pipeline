@@ -11,6 +11,7 @@ from pathlib import Path
 
 from trading_signal_pipeline.domain.events import DomainEvent
 from trading_signal_pipeline.ports.event_publisher import EventPublisher
+from trading_signal_pipeline.config.paths import DEFAULT_OUTBOX_PATH
 
 
 class FileOutboxPublisher(EventPublisher):
@@ -18,7 +19,7 @@ class FileOutboxPublisher(EventPublisher):
     Simple outbox: append events as JSON lines.
     """
 
-    def __init__(self, path: str = "artifacts/outbox.jsonl"):
+    def __init__(self, path: str = DEFAULT_OUTBOX_PATH):
         """
         Args:
             path: JSONL file path to append events to.

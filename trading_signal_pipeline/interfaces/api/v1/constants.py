@@ -14,3 +14,6 @@ HEADER_API_KEY = "X-API-Key"
 HEADER_IDEMPOTENCY_KEY = "Idempotency-Key"
 HEADER_REQUEST_ID = "X-Request-Id"
 
+PATH_HEALTH = "/health"
+PREFIX_V1 = "/v1"
+PREFIX_REPORT = "/v1/report"

@@ -13,6 +13,7 @@ from typing import Optional
 from trading_signal_pipeline.domain.backtest_result import BacktestResult
 from trading_signal_pipeline.ports.backtest_result_repository import BacktestResultRepository
 from trading_signal_pipeline.serialization.primitives import backtest_result_from_dict, backtest_result_to_dict
+from trading_signal_pipeline.config.paths import DEFAULT_LATEST_BACKTEST_PATH
 
 
 class JsonBacktestResultRepository(BacktestResultRepository):
@@ -20,7 +21,7 @@ class JsonBacktestResultRepository(BacktestResultRepository):
     File-backed repository storing only the latest backtest result.
     """
 
-    def __init__(self, path: str = "artifacts/latest_backtest.json"):
+    def __init__(self, path: str = DEFAULT_LATEST_BACKTEST_PATH):
         """
         Args:
             path: JSON path used to store the latest result.

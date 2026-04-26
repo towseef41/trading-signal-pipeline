@@ -13,6 +13,7 @@ from typing import List
 from trading_signal_pipeline.domain.signal import SignalEvent
 from trading_signal_pipeline.ports.signal_repository import SignalRepository
 from trading_signal_pipeline.serialization.primitives import signal_event_from_dict, signal_event_to_dict
+from trading_signal_pipeline.config.paths import DEFAULT_SIGNALS_PATH
 
 
 class JsonlSignalRepository(SignalRepository):
@@ -20,7 +21,7 @@ class JsonlSignalRepository(SignalRepository):
     File-backed signal repository (JSON Lines) for simple persistence.
     """
 
-    def __init__(self, path: str = "artifacts/signals.jsonl"):
+    def __init__(self, path: str = DEFAULT_SIGNALS_PATH):
         """
         Args:
             path: JSONL path for persistence.
