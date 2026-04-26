@@ -31,12 +31,11 @@ def require_api_key(x_api_key: str | None = Header(default=None, alias="X-API-Ke
     if not expected:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Server misconfigured: PIPELINE_API_KEY not set",
+            detail={"code": "server_misconfigured", "message": "PIPELINE_API_KEY not set"},
         )
 
     if not x_api_key or not hmac.compare_digest(x_api_key, expected):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid API key",
+            detail={"code": "invalid_api_key", "message": "Invalid API key"},
         )
-

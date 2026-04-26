@@ -5,7 +5,13 @@ Webhook ingestion endpoints.
 from fastapi import APIRouter, HTTPException, Depends
 from fastapi import Header
 
-from trading_signal_pipeline.interfaces.api.v1.schemas import TradeSignal
+from trading_signal_pipeline.interfaces.api.v1.schemas import (
+    ApiResponse,
+    ErrorResponse,
+    IngestSignalOut,
+    SignalEventOut,
+    TradeSignal,
+)
 from trading_signal_pipeline.interfaces.api.v1.dependencies import get_ingest_signal_service
 from trading_signal_pipeline.interfaces.api.v1.auth import require_api_key
 from trading_signal_pipeline.application.ingest_signal import DuplicateSignalError, IngestSignalService
@@ -43,14 +49,34 @@ def _handle_signal(
             idempotency_key=idempotency_key,
         )
     except DuplicateSignalError as e:
-        raise HTTPException(status_code=400, detail=str(e)) from e
+        raise HTTPException(status_code=400, detail={"code": "duplicate_signal", "message": str(e)}) from e
 
     logger.info("Received signal: %s", event)
 
-    return {"message": "Signal processed", "execution": execution_result_to_dict(execution)}
+    payload = IngestSignalOut(
+        signal=SignalEventOut(
+            symbol=str(event.symbol),
+            side=event.side,
+            qty=float(event.qty),
+            price=float(event.price),
+            received_at=event.received_at,
+            idempotency_key=event.idempotency_key,
+        ),
+        execution=execution_result_to_dict(execution),
+    )
+    return ApiResponse[IngestSignalOut](data=payload)
 
 
-@router.post("/signals")
+@router.post(
+    "/signals",
+    response_model=ApiResponse[IngestSignalOut],
+    responses={
+        400: {"model": ErrorResponse},
+        401: {"model": ErrorResponse},
+        422: {"model": ErrorResponse},
+        500: {"model": ErrorResponse},
+    },
+)
 def create_signal(
     signal: TradeSignal,
     idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"),

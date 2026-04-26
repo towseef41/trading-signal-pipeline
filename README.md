@@ -276,11 +276,47 @@ curl -sS -X POST "http://127.0.0.1:8000/v1/signals" \
   -d '{"symbol":"AAPL","side":"BUY","qty":10,"price":150.25}'
 ```
 
+Response shape (success):
+
+```json
+{
+  "data": {
+    "signal": {
+      "symbol": "AAPL",
+      "side": "BUY",
+      "qty": 10.0,
+      "price": 150.25,
+      "received_at": "2026-01-01T00:00:00+00:00",
+      "idempotency_key": "..."
+    },
+    "execution": {
+      "status": "filled",
+      "symbol": "AAPL",
+      "side": "BUY",
+      "qty": 10.0,
+      "price": 150.25
+    }
+  }
+}
+```
+
 Behavior:
 
 - Malformed payloads are rejected with `422` (FastAPI/Pydantic validation).
-- Duplicate signals are rejected with `400` and `{"detail":"Duplicate signal"}`.
+- Duplicate signals are rejected with `400` (`error.code="duplicate_signal"`).
 - Accepted signals are persisted to `artifacts/signals.jsonl` with a timestamp.
+
+Response shape (error envelope):
+
+```json
+{
+  "error": {
+    "code": "validation_error",
+    "message": "Request validation failed",
+    "details": []
+  }
+}
+```
 
 ### Test idempotency (duplicate signal handling)
 
@@ -326,6 +362,18 @@ Endpoint: `GET http://127.0.0.1:8000/v1/report/`
 ```bash
 curl -sS "http://127.0.0.1:8000/v1/report/" \
   -H "X-API-Key: $PIPELINE_API_KEY" | python -m json.tool
+```
+
+Response shape:
+
+```json
+{
+  "data": {
+    "performance": { "total_return": 0.0, "win_rate": 0.0, "max_drawdown": 0.0, "num_trades": 0 },
+    "trades_summary": { "total_trades": 0, "last_trade": null },
+    "signals_summary": { "total_signals": 0, "last_signal": null }
+  }
+}
 ```
 
 ---

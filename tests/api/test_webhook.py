@@ -74,8 +74,10 @@ def test_webhook_success():
     assert response.status_code == 200
     data = response.json()
 
-    assert data["message"] == "Signal processed"
-    assert data["execution"]["status"] == "filled"
+    assert data["data"]["signal"]["symbol"] == "AAPL"
+    assert data["data"]["signal"]["side"] == "BUY"
+    assert data["data"]["signal"]["idempotency_key"]
+    assert data["data"]["execution"]["status"] == "filled"
 
 
 def test_webhook_validation_error():
@@ -89,6 +91,7 @@ def test_webhook_validation_error():
     response = client.post("/v1/signals", json=payload, headers={"X-API-Key": "test"})
 
     assert response.status_code == 422
+    assert response.json()["error"]["code"] == "validation_error"
 
 
 def test_duplicate_signal():
@@ -106,7 +109,8 @@ def test_duplicate_signal():
     # Duplicate request (same store instance now)
     response2 = client.post("/v1/signals", json=payload, headers={"X-API-Key": "test"})
     assert response2.status_code == 400
-    assert response2.json()["detail"] == "Duplicate signal"
+    assert response2.json()["error"]["code"] == "duplicate_signal"
+    assert response2.json()["error"]["message"] == "Duplicate signal"
 
 
 def test_missing_fields():
@@ -126,3 +130,27 @@ def test_health_endpoint():
 
     assert response.status_code == 200
     assert response.json()["status"] == "ok"
+
+
+def test_report_requires_auth():
+    # Remove auth override for this test only.
+    if require_api_key in app.dependency_overrides:
+        del app.dependency_overrides[require_api_key]
+
+    try:
+        response = client.get("/v1/report/")
+        assert response.status_code == 500
+        body = response.json()
+        assert body["error"]["code"] == "server_misconfigured"
+    finally:
+        app.dependency_overrides[require_api_key] = lambda: None
+
+
+def test_report_response_envelope():
+    response = client.get("/v1/report/", headers={"X-API-Key": "test"})
+    assert response.status_code == 200
+    body = response.json()
+    assert "data" in body
+    assert "performance" in body["data"]
+    assert "trades_summary" in body["data"]
+    assert "signals_summary" in body["data"]
