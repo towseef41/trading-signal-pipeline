@@ -395,6 +395,14 @@ If you are using a virtualenv, prefer:
 python -m pytest -q
 ```
 
+## CI
+
+GitHub Actions runs:
+
+- `pytest` (unit tests)
+- `ruff` (light lint: undefined names / syntax errors)
+- `mypy` (non-strict type check)
+
 ---
 
 ## Troubleshooting
