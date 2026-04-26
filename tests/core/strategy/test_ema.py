@@ -1,7 +1,5 @@
 from datetime import datetime, timedelta, timezone
 
-import pytest
-
 from trading_signal_pipeline.domain.market import Candle
 from trading_signal_pipeline.domain.signal import SignalType
 from trading_signal_pipeline.domain.strategies.ema_crossover import EMACrossoverStrategy

@@ -1,5 +1,3 @@
-import os
-
 import pytest
 from fastapi import HTTPException
 
@@ -31,4 +29,3 @@ def test_require_api_key_allows_valid(monkeypatch):
     monkeypatch.setenv("PIPELINE_API_KEY", "secret")
     # Should not raise.
     require_api_key(x_api_key="secret")
-

@@ -14,7 +14,7 @@ from __future__ import annotations
 
 from dataclasses import asdict
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+from typing import List, Optional
 
 from trading_signal_pipeline.domain.artifact import BacktestArtifact
 from trading_signal_pipeline.domain.backtesting.backtester import Backtester

@@ -7,16 +7,15 @@ This keeps serialization concerns out of the domain model.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 
 from trading_signal_pipeline.domain.backtest_result import BacktestResult
 from trading_signal_pipeline.domain.execution import ExecutionResult
 from trading_signal_pipeline.domain.fill import Fill
 from trading_signal_pipeline.domain.signal import SignalEvent
 from trading_signal_pipeline.domain.trade import Trade
-from trading_signal_pipeline.domain.value_objects import Price, Quantity, Symbol, Volume
+from trading_signal_pipeline.domain.value_objects import Price, Quantity, Symbol
 
 
 def _dt_to_str(dt: datetime) -> str:

@@ -4,7 +4,6 @@ from trading_signal_pipeline.interfaces.api.v1.app import app
 from trading_signal_pipeline.interfaces.api.v1.dependencies import get_signal_store, get_broker, get_event_publisher
 from trading_signal_pipeline.interfaces.api.v1.auth import require_api_key
 from trading_signal_pipeline.domain.execution import ExecutionResult
-from trading_signal_pipeline.adapters.outbox.noop_publisher import NoOpEventPublisher
 
 
 # ----------------------------
