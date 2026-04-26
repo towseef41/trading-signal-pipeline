@@ -53,6 +53,9 @@ No module in `domain/` imports from `interfaces/` or `adapters/`.
   - `domain/execution.py` contains `ExecutionResult`
 - Value objects:
   - `domain/value_objects.py` (`Symbol`, `Price`, `Quantity`, `Volume`) enforce basic invariants
+- Execution realism (pluggable policies):
+  - Fill model decides when/at-what-price to fill (same-bar close vs next-bar open)
+  - Cost model applies slippage/fees (in basis points)
 
 ---
 

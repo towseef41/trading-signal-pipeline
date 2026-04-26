@@ -54,8 +54,9 @@ class Backtester:
         fills: List[Fill] = []
         equity_curve: List[float] = []
 
-        for candle, signal in zip(series, signals):
-            self.execution.on_candle(candle, signal, position, portfolio, trades, fills)
+        for i, (candle, signal) in enumerate(zip(series, signals)):
+            next_candle = series[i + 1] if i + 1 < len(series) else None
+            self.execution.on_candle(candle, next_candle, signal, position, portfolio, trades, fills)
 
             unrealized = 0.0
             if position.is_open and position.entry_price is not None:

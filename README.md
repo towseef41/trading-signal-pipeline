@@ -191,8 +191,13 @@ This will:
 ### Backtest assumptions (explicit)
 
 - Signals are generated using each candle's `close`.
-- Backtest execution fills entries/exits at that same candle `close` (a common simplification).
-- If we want stricter realism, the execution policy can be swapped to fill on next-bar `open` and/or apply slippage/fees.
+- By default, backtest execution fills entries/exits at that same candle `close` (a common simplification).
+- For stricter realism you can fill on the next bar `open` and/or apply slippage/fees:
+
+```bash
+python main.py backtest --provider binance --symbol BTCUSDT --start 2024-01-01 --end 2024-02-01 --interval 1d \
+  --fill-model next_open --slippage-bps 5 --fee-bps 10 --output json
+```
 
 ### Backtest outputs
 

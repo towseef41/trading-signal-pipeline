@@ -21,6 +21,7 @@ class Position:
     quantity: Optional[Quantity] = None
     entry_price: Optional[Price] = None
     entry_time: Optional[datetime] = None
+    entry_fee: float = 0.0
 
     @property
     def is_open(self) -> bool:

@@ -18,6 +18,8 @@ from trading_signal_pipeline.application.reporting.engine import ReportEngine
 from trading_signal_pipeline.application.reporting.sections import PerformanceSection, TradesSection, SignalsSection
 from trading_signal_pipeline.domain.backtesting.backtester import Backtester
 from trading_signal_pipeline.domain.backtesting.execution import LongOnlyExecution
+from trading_signal_pipeline.domain.backtesting.cost_models import BpsSlippageAndFees, NoCosts
+from trading_signal_pipeline.domain.backtesting.fill_models import NextBarOpenFillModel, SameBarCloseFillModel
 from trading_signal_pipeline.domain.strategies.ema_crossover import EMACrossoverStrategy
 from trading_signal_pipeline.adapters.market_data.csv_provider import CsvMarketDataProvider
 from trading_signal_pipeline.adapters.market_data.binance_provider import BinanceMarketDataProvider
@@ -39,8 +41,14 @@ def _cmd_backtest(args: argparse.Namespace) -> int:
         provider = BinanceMarketDataProvider()
     else:
         provider = YFinanceMarketDataProvider(default_timezone=args.yahoo_tz)
+    fill_model = SameBarCloseFillModel() if args.fill_model == "same_close" else NextBarOpenFillModel()
+    if args.fee_bps or args.slippage_bps:
+        cost_model = BpsSlippageAndFees(slippage_bps=args.slippage_bps, fee_bps=args.fee_bps)
+    else:
+        cost_model = NoCosts()
+
     backtester = Backtester(
-        execution=LongOnlyExecution(quantity=args.quantity),
+        execution=LongOnlyExecution(quantity=args.quantity, fill_model=fill_model, cost_model=cost_model),
         initial_capital=args.initial_capital,
     )
     result_repo = JsonBacktestResultRepository()
@@ -117,6 +125,24 @@ def main(argv: list[str] | None = None) -> int:
     bt.add_argument("--short-window", type=int, default=9)
     bt.add_argument("--long-window", type=int, default=21)
     bt.add_argument("--quantity", type=float, default=1.0)
+    bt.add_argument(
+        "--fill-model",
+        choices=["same_close", "next_open"],
+        default="same_close",
+        help="Fill model used by the execution policy (default: same_close).",
+    )
+    bt.add_argument(
+        "--slippage-bps",
+        type=float,
+        default=0.0,
+        help="Slippage in basis points applied to each fill (default: 0).",
+    )
+    bt.add_argument(
+        "--fee-bps",
+        type=float,
+        default=0.0,
+        help="Fee/commission in basis points applied to notional for each fill (default: 0).",
+    )
     bt.add_argument(
         "--provider",
         choices=["yfinance", "binance", "csv"],
