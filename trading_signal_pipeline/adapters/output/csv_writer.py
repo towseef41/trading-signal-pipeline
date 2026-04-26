@@ -37,17 +37,17 @@ class CsvArtifactWriter(ArtifactWriter):
 
         # Metrics
         with (base.with_suffix(".metrics.csv")).open("w", newline="", encoding="utf-8") as f:
-            w = csv.writer(f)
-            w.writerow(["metric", "value"])
+            writer = csv.writer(f)
+            writer.writerow(["metric", "value"])
             for k, v in artifact.metrics.items():
-                w.writerow([k, v])
+                writer.writerow([k, v])
 
         # Equity curve
         with (base.with_suffix(".equity.csv")).open("w", newline="", encoding="utf-8") as f:
-            w = csv.writer(f)
-            w.writerow(["idx", "equity"])
+            writer = csv.writer(f)
+            writer.writerow(["idx", "equity"])
             for i, v in enumerate(artifact.result.equity_curve):
-                w.writerow([i, v])
+                writer.writerow([i, v])
 
         # Trades
         with (base.with_suffix(".trades.csv")).open("w", newline="", encoding="utf-8") as f:
@@ -61,16 +61,16 @@ class CsvArtifactWriter(ArtifactWriter):
                 "entry_time",
                 "exit_time",
             ]
-            w = csv.DictWriter(f, fieldnames=fieldnames)
-            w.writeheader()
+            dict_writer = csv.DictWriter(f, fieldnames=fieldnames)
+            dict_writer.writeheader()
             for t in artifact.result.trades:
                 row = trade_to_dict(t)
-                w.writerow(row)
+                dict_writer.writerow(row)
 
         # Fills (entry/exit legs)
         with (base.with_suffix(".fills.csv")).open("w", newline="", encoding="utf-8") as f:
             fieldnames = ["symbol", "side", "price", "quantity", "time"]
-            w = csv.DictWriter(f, fieldnames=fieldnames)
-            w.writeheader()
+            dict_writer = csv.DictWriter(f, fieldnames=fieldnames)
+            dict_writer.writeheader()
             for fill in artifact.result.fills:
-                w.writerow(fill_to_dict(fill))
+                dict_writer.writerow(fill_to_dict(fill))

@@ -32,5 +32,5 @@ def get_report(
     Returns:
         JSON report dictionary.
     """
-    report = service.generate()
+    report = ReportOut.model_validate(service.generate())
     return ApiResponse[ReportOut](data=report)

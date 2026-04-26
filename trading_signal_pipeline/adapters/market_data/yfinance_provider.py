@@ -100,7 +100,7 @@ class YFinanceMarketDataProvider(MarketDataProvider):
                 t = yf.Ticker(symbol, session=session)
                 if self.default_timezone:
                     # yfinance uses this field to short-circuit timezone fetch.
-                    t._tz = self.default_timezone  # type: ignore[attr-defined]
+                    t._tz = self.default_timezone
 
                 df = t.history(
                     start=start,

@@ -9,6 +9,7 @@ from trading_signal_pipeline.interfaces.api.v1.schemas import (
     ApiResponse,
     ErrorResponse,
     IngestSignalOut,
+    ExecutionResultOut,
     SignalEventOut,
     TradeSignal,
 )
@@ -76,7 +77,7 @@ def _handle_signal(
             received_at=event.received_at,
             idempotency_key=event.idempotency_key,
         ),
-        execution=execution_result_to_dict(execution),
+        execution=ExecutionResultOut(**execution_result_to_dict(execution)),
     )
     return ApiResponse[IngestSignalOut](data=payload)
 

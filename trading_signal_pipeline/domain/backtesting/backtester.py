@@ -17,6 +17,7 @@ from trading_signal_pipeline.domain.backtesting.position import Position
 from trading_signal_pipeline.domain.fill import Fill
 from trading_signal_pipeline.domain.market import MarketSeries
 from trading_signal_pipeline.domain.strategy import Strategy
+from trading_signal_pipeline.domain.trade import Trade
 
 
 @dataclass(frozen=True)
@@ -50,7 +51,7 @@ class Backtester:
         position = Position(symbol=Symbol(symbol))
         portfolio = Portfolio(self.initial_capital)
 
-        trades = []
+        trades: List[Trade] = []
         fills: List[Fill] = []
         equity_curve: List[float] = []
 

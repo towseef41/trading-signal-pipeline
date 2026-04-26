@@ -12,7 +12,7 @@ This application service:
 
 from __future__ import annotations
 
-from dataclasses import asdict
+from dataclasses import asdict, is_dataclass
 from datetime import datetime, timezone
 from typing import List, Optional
 
@@ -99,7 +99,7 @@ class RunBacktestService:
                 "end": end,
                 "interval": interval,
                 "strategy": strategy.__class__.__name__,
-                "strategy_params": asdict(strategy) if hasattr(strategy, "__dataclass_fields__") else {},
+                "strategy_params": asdict(strategy) if is_dataclass(strategy) else {},
                 "generated_at": datetime.now(timezone.utc).isoformat(),
             },
         )

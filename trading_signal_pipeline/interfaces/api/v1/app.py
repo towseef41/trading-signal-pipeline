@@ -14,7 +14,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from trading_signal_pipeline.interfaces.api.v1.ingestion import router as webhook_router
 from trading_signal_pipeline.interfaces.api.v1.reporting import router as reporting_router
-from trading_signal_pipeline.interfaces.api.v1.schemas import ErrorResponse
+from trading_signal_pipeline.interfaces.api.v1.schemas import ApiError, ErrorResponse
 from trading_signal_pipeline.adapters.logging.request_context import clear_request_id, set_request_id
 from trading_signal_pipeline.interfaces.api.v1.constants import HEADER_REQUEST_ID, PATH_HEALTH
 from trading_signal_pipeline.interfaces.api.v1.error_codes import ERR_HTTP, ERR_VALIDATION
@@ -59,7 +59,7 @@ async def http_exception_handler(_request, exc: StarletteHTTPException):
         message = str(detail)
         details = None
 
-    payload = ErrorResponse(error={"code": code, "message": message, "details": details})
+    payload = ErrorResponse(error=ApiError(code=code, message=message, details=details))
     return JSONResponse(status_code=exc.status_code, content=payload.model_dump())
 
 
@@ -67,11 +67,11 @@ async def http_exception_handler(_request, exc: StarletteHTTPException):
 async def validation_exception_handler(_request, exc: RequestValidationError):
     """Return a consistent error envelope for request validation errors."""
     payload = ErrorResponse(
-        error={
-            "code": ERR_VALIDATION,
-            "message": "Request validation failed",
-            "details": exc.errors(),
-        }
+        error=ApiError(
+            code=ERR_VALIDATION,
+            message="Request validation failed",
+            details=exc.errors(),
+        ),
     )
     return JSONResponse(status_code=422, content=payload.model_dump())
 
