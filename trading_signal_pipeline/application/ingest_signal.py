@@ -54,6 +54,7 @@ class IngestSignalService:
         qty: float,
         price: float,
         idempotency_key: Optional[str] = None,
+        correlation_id: Optional[str] = None,
     ) -> Tuple[SignalEvent, ExecutionResult]:
         """
         Ingest and execute a trade signal.
@@ -64,6 +65,7 @@ class IngestSignalService:
             qty: Quantity (> 0).
             price: Price (> 0).
             idempotency_key: Optional caller-provided idempotency key (preferred in production).
+            correlation_id: Optional correlation id used for event publishing (e.g. request id).
 
         Returns:
             Tuple of (SignalEvent, ExecutionResult).
@@ -90,7 +92,7 @@ class IngestSignalService:
         self.repo.add(event)
         execution = self.broker.execute(event)
 
-        corr = event.idempotency_key
+        corr = correlation_id or event.idempotency_key
         self.publisher.publish(
             DomainEvent.now(
                 name="signal.ingested",

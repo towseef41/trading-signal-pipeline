@@ -2,7 +2,12 @@
 FastAPI application entrypoint.
 """
 
+from __future__ import annotations
+
+import uuid
+
 from fastapi import FastAPI
+from starlette.requests import Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
@@ -10,6 +15,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from trading_signal_pipeline.interfaces.api.v1.ingestion import router as webhook_router
 from trading_signal_pipeline.interfaces.api.v1.reporting import router as reporting_router
 from trading_signal_pipeline.interfaces.api.v1.schemas import ErrorResponse
+from trading_signal_pipeline.adapters.logging.request_context import clear_request_id, set_request_id
 
 app = FastAPI(title="Signal Ingestion API")
 
@@ -18,6 +24,24 @@ app = FastAPI(title="Signal Ingestion API")
 def health():
     """Health check endpoint."""
     return {"status": "ok"}
+
+
+@app.middleware("http")
+async def request_id_middleware(request: Request, call_next):
+    """
+    Ensure every request has an X-Request-Id and propagate it into:
+      - response header (X-Request-Id)
+      - log context (request_id)
+      - application events (correlation_id), when passed through use-cases
+    """
+    req_id = request.headers.get("X-Request-Id") or str(uuid.uuid4())
+    set_request_id(req_id)
+    try:
+        response = await call_next(request)
+        response.headers["X-Request-Id"] = req_id
+        return response
+    finally:
+        clear_request_id()
 
 
 @app.exception_handler(StarletteHTTPException)

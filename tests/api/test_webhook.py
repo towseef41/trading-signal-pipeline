@@ -37,6 +37,13 @@ class MockBroker:
             price=signal.price,
         )
 
+class MockPublisher:
+    def __init__(self):
+        self.events = []
+
+    def publish(self, event):
+        self.events.append(event)
+
 
 # ----------------------------
 # Test Setup (IMPORTANT FIX)
@@ -47,11 +54,15 @@ def setup_function():
     Reset dependencies before each test to ensure isolation.
     """
     mock_store = MockStore()
+    mock_publisher = MockPublisher()
 
     app.dependency_overrides[get_signal_store] = lambda: mock_store
     app.dependency_overrides[get_broker] = lambda: MockBroker()
-    app.dependency_overrides[get_event_publisher] = lambda: NoOpEventPublisher()
+    app.dependency_overrides[get_event_publisher] = lambda: mock_publisher
     app.dependency_overrides[require_api_key] = lambda: None
+
+    # Expose publisher for tests that need it.
+    setup_function.mock_publisher = mock_publisher
 
 
 client = TestClient(app)
@@ -78,6 +89,7 @@ def test_webhook_success():
     assert data["data"]["signal"]["side"] == "BUY"
     assert data["data"]["signal"]["idempotency_key"]
     assert data["data"]["execution"]["status"] == "filled"
+    assert response.headers.get("X-Request-Id")
 
 
 def test_webhook_validation_error():
@@ -111,6 +123,24 @@ def test_duplicate_signal():
     assert response2.status_code == 400
     assert response2.json()["error"]["code"] == "duplicate_signal"
     assert response2.json()["error"]["message"] == "Duplicate signal"
+
+
+def test_request_id_propagates_to_outbox_correlation_id():
+    payload = {"symbol": "AAPL", "side": "BUY", "qty": 10, "price": 150}
+    req_id = "req-test-123"
+    response = client.post(
+        "/v1/signals",
+        json=payload,
+        headers={"X-API-Key": "test", "X-Request-Id": req_id},
+    )
+    assert response.status_code == 200
+    assert response.headers.get("X-Request-Id") == req_id
+
+    publisher = setup_function.mock_publisher
+    names = [e.name for e in publisher.events]
+    assert "signal.ingested" in names
+    assert "signal.executed" in names
+    assert all(e.correlation_id == req_id for e in publisher.events)
 
 
 def test_missing_fields():

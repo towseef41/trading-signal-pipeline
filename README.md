@@ -251,6 +251,7 @@ Auth:
 
 - Protected endpoints require `X-API-Key: <PIPELINE_API_KEY>`
 - Unprotected endpoint: `GET /health`
+- Observability: you may send `X-Request-Id` (optional). If omitted, the server generates one and echoes it back.
 
 ---
 
@@ -305,6 +306,10 @@ Response shape (success):
 }
 ```
 
+Response headers:
+
+- `X-Request-Id`: request identifier (useful for tracing and matching outbox events)
+
 Behavior:
 
 - Malformed payloads are rejected with `422` (FastAPI/Pydantic validation).
@@ -331,6 +336,7 @@ same `Idempotency-Key`:
 ```bash
 curl -sS -X POST "http://127.0.0.1:8000/v1/signals" \
   -H "X-API-Key: $PIPELINE_API_KEY" \
+  -H "X-Request-Id: req-123" \
   -H "Idempotency-Key: demo-1" \
   -H "Content-Type: application/json" \
   -d '{"symbol":"BTCUSDT","side":"BUY","qty":1,"price":100.0}'
@@ -338,6 +344,7 @@ curl -sS -X POST "http://127.0.0.1:8000/v1/signals" \
 # Same key again -> rejected as duplicate
 curl -sS -X POST "http://127.0.0.1:8000/v1/signals" \
   -H "X-API-Key: $PIPELINE_API_KEY" \
+  -H "X-Request-Id: req-123" \
   -H "Idempotency-Key: demo-1" \
   -H "Content-Type: application/json" \
   -d '{"symbol":"BTCUSDT","side":"BUY","qty":1,"price":100.0}'

@@ -79,9 +79,11 @@ done
 echo
 echo "== Webhook (idempotency demo) =="
 idem_key="demo-$(date +%s)"
+req_id="req-$(date +%s)"
 
 code1="$(curl -sS -o /tmp/ingest1.json -w "%{http_code}" -X POST "http://127.0.0.1:${PORT}/v1/signals" \
   -H "X-API-Key: ${PIPELINE_API_KEY}" \
+  -H "X-Request-Id: ${req_id}" \
   -H "Idempotency-Key: ${idem_key}" \
   -H "Content-Type: application/json" \
   -d "{\"symbol\":\"${SYMBOL}\",\"side\":\"BUY\",\"qty\":1,\"price\":100.0}")"
@@ -91,6 +93,7 @@ echo
 
 code2="$(curl -sS -o /tmp/ingest2.json -w "%{http_code}" -X POST "http://127.0.0.1:${PORT}/v1/signals" \
   -H "X-API-Key: ${PIPELINE_API_KEY}" \
+  -H "X-Request-Id: ${req_id}" \
   -H "Idempotency-Key: ${idem_key}" \
   -H "Content-Type: application/json" \
   -d "{\"symbol\":\"${SYMBOL}\",\"side\":\"BUY\",\"qty\":1,\"price\":100.0}")"
@@ -102,4 +105,3 @@ echo
 echo "== Report =="
 curl -sS "http://127.0.0.1:${PORT}/v1/report/" -H "X-API-Key: ${PIPELINE_API_KEY}"
 echo
-

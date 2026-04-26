@@ -16,6 +16,7 @@ from trading_signal_pipeline.interfaces.api.v1.dependencies import get_ingest_si
 from trading_signal_pipeline.interfaces.api.v1.auth import require_api_key
 from trading_signal_pipeline.application.ingest_signal import DuplicateSignalError, IngestSignalService
 from trading_signal_pipeline.adapters.logging.logger import logger
+from trading_signal_pipeline.adapters.logging.request_context import get_request_id
 from trading_signal_pipeline.serialization.primitives import execution_result_to_dict
 
 router = APIRouter(prefix="/v1", tags=["signals"])
@@ -47,11 +48,22 @@ def _handle_signal(
             qty=signal.qty,
             price=signal.price,
             idempotency_key=idempotency_key,
+            correlation_id=get_request_id(),
         )
     except DuplicateSignalError as e:
         raise HTTPException(status_code=400, detail={"code": "duplicate_signal", "message": str(e)}) from e
 
-    logger.info("Received signal: %s", event)
+    logger.info(
+        "signal_received",
+        extra={
+            "event": "signal_received",
+            "symbol": str(event.symbol),
+            "side": event.side,
+            "qty": float(event.qty),
+            "price": float(event.price),
+            "idempotency_key": event.idempotency_key,
+        },
+    )
 
     payload = IngestSignalOut(
         signal=SignalEventOut(
