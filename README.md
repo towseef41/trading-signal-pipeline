@@ -52,9 +52,45 @@ Design principles:
 * Strategy pattern for extensibility
 * Clear separation between pure logic and side effects
 
+### Flows At A Glance
+
+Backtest (CLI):
+
+```
+main.py (CLI)
+  -> RunBacktestService
+    -> MarketDataProvider (yfinance/binance/csv)
+    -> Strategy (EMA crossover)
+    -> Backtester + ExecutionModel (simulate fills/trades)
+    -> MetricsEngine (total_return, win_rate, max_drawdown, num_trades)
+    -> BacktestResultRepository (writes artifacts/latest_backtest.json)
+    -> ArtifactWriter(s) (writes backtest_<...>.json + CSVs)
+    -> EventPublisher (appends backtest.completed to artifacts/outbox.jsonl)
+```
+
+Signal ingestion (API):
+
+```
+POST /v1/signals (FastAPI)
+  -> IngestSignalService
+    -> SignalRepository (dedupe via Idempotency-Key, append artifacts/signals.jsonl)
+    -> Broker (mock execution)
+    -> EventPublisher (signal.ingested + signal.executed -> artifacts/outbox.jsonl)
+```
+
+Reporting (CLI/API):
+
+```
+GenerateReportService
+  -> reads artifacts/latest_backtest.json (if present)
+  -> reads artifacts/signals.jsonl (if present)
+  -> MetricsEngine + ReportEngine (sections)
+  -> returns JSON (stdout or GET /v1/report/)
+```
+
 ### Detailed Architecture
 
-See `docs/ARCHITECTURE.md` for:
+See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for:
 
 - Package layout and dependency rules (ports/adapters)
 - Backtest, ingestion, and reporting flows

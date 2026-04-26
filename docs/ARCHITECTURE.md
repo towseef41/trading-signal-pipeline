@@ -75,12 +75,14 @@ Concrete implementations of ports live in `adapters/`:
 
 - Market data:
   - `adapters/market_data/yfinance_provider.py` implements `MarketDataProvider`
+  - `adapters/market_data/binance_provider.py` implements `MarketDataProvider` (public klines API, no key)
+  - `adapters/market_data/csv_provider.py` implements `MarketDataProvider` (offline/local CSV)
 - Persistence:
   - `adapters/storage/file_backtest_repo.py` writes `artifacts/latest_backtest.json`
   - `adapters/storage/file_signal_repo.py` appends to `artifacts/signals.jsonl`
 - Output writers:
   - `adapters/output/json_writer.py` writes a single JSON artifact
-  - `adapters/output/csv_writer.py` writes metrics/equity/trades as CSV
+  - `adapters/output/csv_writer.py` writes metrics/equity/trades/fills as CSV
 - Broker:
   - `adapters/execution/broker.py` is a `MockBroker` implementation
 - Outbox/event publishing:
@@ -111,6 +113,16 @@ MarketDataProvider.load(symbol, start, end, interval)
   -> EventPublisher.publish(backtest.completed)
 ```
 
+Artifacts written (default):
+
+- `artifacts/latest_backtest.json` (latest `BacktestResult`, used by reporting)
+- `artifacts/backtest_<SYMBOL>_<TIMESTAMP>.json` (meta + metrics + result)
+- `artifacts/backtest_<SYMBOL>_<TIMESTAMP>.metrics.csv`
+- `artifacts/backtest_<SYMBOL>_<TIMESTAMP>.equity.csv`
+- `artifacts/backtest_<SYMBOL>_<TIMESTAMP>.trades.csv`
+- `artifacts/backtest_<SYMBOL>_<TIMESTAMP>.fills.csv` (entry/exit legs)
+- `artifacts/outbox.jsonl` (includes `backtest.completed`)
+
 ### IngestSignal
 
 File: `application/ingest_signal.py`
@@ -126,6 +138,11 @@ create SignalEvent (with idempotency key + timestamp)
   -> EventPublisher.publish(signal.executed)
 ```
 
+Idempotency:
+
+- The HTTP layer accepts an `Idempotency-Key` header.
+- The `SignalRepository` tracks previously-seen keys and rejects duplicates to prevent re-processing.
+
 ### GenerateReport
 
 File: `application/generate_report.py`
@@ -139,6 +156,11 @@ metrics = MetricsEngine.compute_all(...)
 report  = ReportEngine.generate(metrics, trades, signals)
 ```
 
+Report output:
+
+- CLI (`python main.py report`) prints JSON to stdout.
+- API (`GET /v1/report/`) returns the same report as JSON.
+
 ---
 
 ## HTTP Interface (FastAPI)
@@ -148,9 +170,10 @@ The HTTP layer adapts request/response DTOs to use-cases and returns JSON.
 Location:
 
 - `interfaces/api/v1/app.py`
-- `interfaces/api/v1/ingestion.py` (`POST /v1/webhook`)
+- `interfaces/api/v1/ingestion.py` (`POST /v1/signals`)
 - `interfaces/api/v1/reporting.py` (`GET /v1/report/`)
 - `interfaces/api/v1/dependencies.py` wires ports -> adapters
+- `interfaces/api/v1/auth.py` enforces `X-API-Key` against env `PIPELINE_API_KEY`
 
 The interface layer should contain:
 
